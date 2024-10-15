@@ -1,4 +1,8 @@
 ![header](banner.png)
+# JellyGlass
+A fork of AltAlex's OpenGlass project, which restores the Aero look to Windows 10 (20H1-21H2), with several AWM (Aero Window Manager) features ported into the main program, making it a multipurpose DWM program.
+This project is also going to add extra features in the future.
+
 # OpenGlass
 A replica of the dead software glass8, also known as the upstream project of [DWMBlurGlass](https://github.com/Maplespe/DWMBlurGlass).  
 
