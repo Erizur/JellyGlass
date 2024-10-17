@@ -16,7 +16,7 @@ namespace OpenGlass::CaptionTextHandler
     void STDMETHODCALLTYPE MyCText_SetBackgroundColor(uDwm::CText* This, COLORREF color);
 	long STDMETHODCALLTYPE MyCText_SetText(uDwm::CText* This, wchar_t* str);
 	void STDMETHODCALLTYPE MyCText_SetFont(uDwm::CText* This, LOGFONTW* font);
-    HRESULT STDMETHODCALLTYPE MyCText_InitializeVisualTreeClone(uDwm::CText* This, BYTE* pNew, UINT options);
+    HRESULT STDMETHODCALLTYPE MyCText_InitializeVisualTreeClone(uDwm::CText* This, uDwm::CText* pNew, UINT options);
 	HRESULT STDMETHODCALLTYPE MyCText_ValidateResources(uDwm::CText* This);
 	uDwm::CText* STDMETHODCALLTYPE MyCText_CText(uDwm::CText* This);
 	uDwm::CText* STDMETHODCALLTYPE MyCText_Destroy(uDwm::CText* This, UINT someFlags);
@@ -81,12 +81,13 @@ namespace OpenGlass::CaptionTextHandler
             DWMAtlas->Release();
     }
 
-	void CText_CreateTextLayout(BYTE* pThis) {
+	void CText_CreateTextLayout(uDwm::CText* This) {
+        BYTE* pThis = (BYTE*)This;
 		HRESULT hr = 0;
 		LPCWSTR string = *(LPCWSTR*)(pThis + 288);
-		TEXTEX* textex = *(TEXTEX**)(pThis + 400);
+        TEXTEX* textex = This->GetTextEx();
 		IDWriteTextLayout* textlayout = NULL;
-		IDWriteTextFormat* textformat = textex->textFormat;
+		IDWriteTextFormat* textformat = This->textFormat;
 		LOGFONT font = *(LOGFONT*)(pThis + 296);
 		if (string) {
 			int stringlength = wcslen(string);
@@ -103,18 +104,19 @@ namespace OpenGlass::CaptionTextHandler
 		}
 	release:
 		if (hr >= 0) {
-			if (textex->textLayout)
-				textex->textLayout->Release();
-			textex->textLayout = textlayout;
+			if (This->textLayout != NULL)
+				This->textLayout->Release();
+			This->textLayout = textlayout;
 		}
 	}
 
-	void CText_CreateTextFormat(BYTE* pThis, LOGFONTW* font) {
+	void CText_CreateTextFormat(uDwm::CText* This, LOGFONTW* font) {
+        BYTE* pThis = (BYTE*)This;
 		HRESULT hr = 0;
 		IDWriteTextFormat* textformat;
 		IDWriteInlineObject* trimmingsign;
 		DWRITE_TRIMMING trimming;
-		TEXTEX* textex = *(TEXTEX**)(pThis + 400);
+        TEXTEX* textex = This->GetTextEx();
 
 		DWRITE_FONT_STYLE style = DWRITE_FONT_STYLE_NORMAL;
 		if (font->lfItalic)
@@ -161,10 +163,10 @@ namespace OpenGlass::CaptionTextHandler
 		}*/
 	release:
 		if (hr >= 0) {
-			if (textex->textFormat)
-				textex->textFormat->Release();
-			textex->textFormat = textformat;
-			CText_CreateTextLayout(pThis);
+			if (This->textFormat)
+				This->textFormat->Release();
+			This->textFormat = textformat;
+			CText_CreateTextLayout(This);
 		}
 	}
 }
@@ -180,23 +182,21 @@ void STDMETHODCALLTYPE CaptionTextHandler::MyCDesktopManager_UnloadTheme(uDwm::C
     g_CDesktopManager_UnloadTheme_Org(This);
     //AWM_DestroyDWMWindowAtlas();
 }
-HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_InitializeVisualTreeClone(uDwm::CText* This, BYTE* pNew, UINT options)
+HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_InitializeVisualTreeClone(uDwm::CText* This, uDwm::CText* pNew, UINT options)
 {
     // The pointer to the TEXTEX struct is saved, as the function overwrites the pointer.
     BYTE* pThis = (BYTE*)This;
-    long long pSaved = *(long long*)(pNew + 400);
     int rv = g_CText_InitializeVisualTreeClone_Org(This, pNew, options);
-    *(long long*)(pNew + 400) = pSaved; // reload the TEXTEX struct pointer into its position
 
     if (*(BYTE*)(pThis + 411) == false) {
-        TEXTEX* textex = (TEXTEX*)malloc(sizeof(TEXTEX));
-        ZeroMemory(textex, sizeof(TEXTEX));
-        *(TEXTEX**)(pThis + 400) = textex;
+        This->SetTextEx();
+        TEXTEX* textex = This->GetTextEx();
         *(pThis + 411) = true;
         textex->render = true;
     }
+    pNew->SetTextEx();
     TEXTEX* textex1 = This->GetTextEx();
-    TEXTEX* textex2 = *(TEXTEX**)(pNew + 400);
+    TEXTEX* textex2 = pNew->GetTextEx();
     textex2->color = textex1->color;
     textex2->shadowcolor = textex1->shadowcolor;
     textex2->tbWidth = textex1->tbWidth;
@@ -251,11 +251,9 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_ValidateResources(uDwm::CT
         LPCWSTR string = *(LPCWSTR*)(pThis + 288);
         TEXTEX* textex = This->GetTextEx();
         if (*(BYTE*)(pThis + 411) == false) {
-            TEXTEX* textex = (TEXTEX*)malloc(sizeof(TEXTEX));
-            ZeroMemory(textex, sizeof(TEXTEX));
-            *(TEXTEX**)(pThis + 400) = textex;
+            This->SetTextEx();
+            TEXTEX* textex = This->GetTextEx();
             *(pThis + 411) = true;
-            textex->render = true;
         }
         fillbox.right = *(int*)(pThis + 120);
         fillbox.bottom = *(int*)(pThis + 124);
@@ -364,11 +362,11 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_ValidateResources(uDwm::CT
                         else if (awmsettings.textAlignment == AWM_TEXT_RIGHT) {
                             textformat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
                         }*/
-                        if (!textex->textFormat) {
-                            CText_CreateTextFormat(pThis, &font);
+                        if (!This->textFormat) {
+                            CText_CreateTextFormat(This, &font);
                         }
-                        textformat = textex->textFormat;
-                        textlayout = textex->textLayout;
+                        textformat = This->textFormat;
+                        textlayout = This->textLayout;
                         if (!textlayout)
                             goto release;
                         /*hr = dwritefactory->CreateTextLayout(string, stringlength, textformat, size.width, size.height, &textlayout);
@@ -604,9 +602,8 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_ValidateResources(uDwm::CT
 uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_CText(uDwm::CText* This)
 {
 	uDwm::CText* textobj = g_CText_CText_Org(This);
-    TEXTEX* textex = (TEXTEX*)malloc(sizeof(TEXTEX));
-    ZeroMemory(textex, sizeof(TEXTEX));
-	*(TEXTEX**)((BYTE*)textobj + 400) = textex;
+    This->SetTextEx();
+    TEXTEX* textex = This->GetTextEx();
 	// This can be checked so that the object is created within various text-related functions.
 	*((BYTE*)textobj + 411) = true;
 	textex->render = true;
@@ -615,12 +612,11 @@ uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_CText(uDwm::CText* Th
 uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_Destroy(uDwm::CText* This, UINT someFlags)
 {
 	if (*((BYTE*)This + 411)) {
-		TEXTEX* textex = *(TEXTEX**)((BYTE*)This + 400);
-		if (textex->textFormat)
-			textex->textFormat->Release();
-		if (textex->textLayout)
-			textex->textLayout->Release();
-		free(*(TEXTEX**)((BYTE*)This + 400));
+		if (This->textFormat != NULL)
+			This->textFormat->Release();
+		if (This->textLayout != NULL)
+			This->textLayout->Release();
+		//free(This.textEx);
 	}
 	uDwm::CText* textobj = g_CText_Destroy_Org(This, someFlags);
 	return textobj;
@@ -628,20 +624,20 @@ uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_Destroy(uDwm::CText* 
 long STDMETHODCALLTYPE CaptionTextHandler::MyCText_SetText(uDwm::CText* This, wchar_t* str)
 {
 	long hr = g_CText_SetText_Org(This, str);
-	TEXTEX* textex = *(TEXTEX**)((BYTE*)This + 400);
+    TEXTEX* textex = This->GetTextEx();
 	if (*((BYTE*)This + 411)) {
 		textex->render = true;
-		CText_CreateTextLayout((BYTE*)This);
+		CText_CreateTextLayout(This);
 	}
 	return hr;
 }
 void STDMETHODCALLTYPE CaptionTextHandler::MyCText_SetFont(uDwm::CText* This, LOGFONTW* font)
 {
-	TEXTEX* textex = *(TEXTEX**)((BYTE*)This + 400);
+    TEXTEX* textex = This->GetTextEx();
 	if (memcmp(((BYTE*)This + 296), font, sizeof(LOGFONTW))) {
 		if (*((BYTE*)This + 411)) {
 			textex->render = true;
-			CText_CreateTextFormat((BYTE*)This, font);
+			CText_CreateTextFormat(This, font);
 		}
 	}
 	g_CText_SetFont_Org(This, font);
@@ -664,16 +660,15 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCTopLevelWindow_UpdateWindowVisu
     float glowOpacity = 0.0f;
     BYTE* windowdata = *(BYTE**)((BYTE*)This + 728);
     RECT winrc = *(RECT*)(windowdata + 180);
-    BYTE* textobj = *(BYTE**)((BYTE*)This + 520);
+    uDwm::CText* textobj = *(uDwm::CText**)((BYTE*)This + 520);
     if (textobj) {
-        if (*(textobj + 411) == false) {
-            TEXTEX* textex = (TEXTEX*)malloc(sizeof(TEXTEX));
-            ZeroMemory(textex, sizeof(TEXTEX));
-            *(TEXTEX**)(textobj + 400) = textex;
-            *(textobj + 411) = true;
+        if (*((BYTE*)textobj + 411) == false) {
+            textobj->SetTextEx();
+            TEXTEX* textex = textobj->GetTextEx();
+            *((BYTE*)textobj + 411) = true;
             textex->render = true;
         }
-        TEXTEX* textex = *(TEXTEX**)(textobj + 400);
+        TEXTEX* textex = textobj->GetTextEx();
         if (This->TreatAsActiveWindow()) {
             color.r = 1.0f;
             color.g = 1.0f;
@@ -704,7 +699,7 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCTopLevelWindow_UpdateWindowVisu
                 textex->isActive = false;
             }
         }
-        BYTE* textFlags2 = (textobj + 280);
+        BYTE* textFlags2 = ((BYTE*)textobj + 280);
         *textFlags2 &= ~1;
         textex->color = color;
         textex->shadowcolor = colorShadow;

@@ -428,18 +428,22 @@ namespace OpenGlass::uDwm
 	};
 	struct CText : CRenderDataVisual 
 	{
+		TEXTEX textEx;
+		IDWriteTextFormat* textFormat = NULL;
+		IDWriteTextLayout* textLayout = NULL;
+
 		static HRESULT STDMETHODCALLTYPE Create(CText** text)
 		{
 			DEFINE_INVOKER(CText::Create);
 			return INVOKE_FUNCTION(text);
 		}
-		void SetTextEx(TEXTEX* textex)
+		void SetTextEx()
 		{
-			reinterpret_cast<TEXTEX* const*>(this)[400] = textex;
+			textEx.render = true;
 		}
 		TEXTEX* GetTextEx() const
 		{
-			return reinterpret_cast<TEXTEX* const*>(this)[400];
+			return (TEXTEX*)&textEx;
 		}
 		bool IsRTL() const
 		{

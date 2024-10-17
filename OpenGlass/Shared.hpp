@@ -7,14 +7,12 @@ namespace OpenGlass::Shared
 	typedef struct _TEXTEX {
 		D2D1_COLOR_F color;
 		D2D1_COLOR_F shadowcolor;
-		float glowopacity;
-		DWORD tbWidth;
-		MARGINS textInset;
-		bool render;
-		IDWriteTextFormat* textFormat = NULL;
-		IDWriteTextLayout* textLayout = NULL;
-		RECT fillboxSize;
-		bool isActive; // this is used mainly to check for re-rendering when window state changes
+		float glowopacity = 0.f;
+		DWORD tbWidth = 0;
+		MARGINS textInset = { 0 };
+		bool render = false;
+		RECT fillboxSize = { 0 };
+		bool isActive = true; // this is used mainly to check for re-rendering when window state changes
 	} TEXTEX;
 
 	inline enum class Type : UCHAR
