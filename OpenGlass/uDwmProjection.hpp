@@ -429,8 +429,6 @@ namespace OpenGlass::uDwm
 	struct CText : CRenderDataVisual 
 	{
 		TEXTEX textEx;
-		IDWriteTextFormat* textFormat = NULL;
-		IDWriteTextLayout* textLayout = NULL;
 
 		static HRESULT STDMETHODCALLTYPE Create(CText** text)
 		{

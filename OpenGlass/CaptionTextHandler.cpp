@@ -87,7 +87,7 @@ namespace OpenGlass::CaptionTextHandler
 		LPCWSTR string = *(LPCWSTR*)(pThis + 288);
         TEXTEX* textex = This->GetTextEx();
 		IDWriteTextLayout* textlayout = NULL;
-		IDWriteTextFormat* textformat = This->textFormat;
+		IDWriteTextFormat* textformat = textex->textFormat;
 		LOGFONT font = *(LOGFONT*)(pThis + 296);
 		if (string) {
 			int stringlength = wcslen(string);
@@ -104,9 +104,9 @@ namespace OpenGlass::CaptionTextHandler
 		}
 	release:
 		if (hr >= 0) {
-			if (This->textLayout != NULL)
-				This->textLayout->Release();
-			This->textLayout = textlayout;
+			if (textex->textLayout)
+				textex->textLayout->Release();
+			textex->textLayout = textlayout;
 		}
 	}
 
@@ -163,9 +163,9 @@ namespace OpenGlass::CaptionTextHandler
 		}*/
 	release:
 		if (hr >= 0) {
-			if (This->textFormat)
-				This->textFormat->Release();
-			This->textFormat = textformat;
+			if (textex->textFormat)
+				textex->textFormat->Release();
+			textex->textFormat = textformat;
 			CText_CreateTextLayout(This);
 		}
 	}
@@ -362,11 +362,11 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_ValidateResources(uDwm::CT
                         else if (awmsettings.textAlignment == AWM_TEXT_RIGHT) {
                             textformat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
                         }*/
-                        if (!This->textFormat) {
+                        if (!textex->textFormat) {
                             CText_CreateTextFormat(This, &font);
                         }
-                        textformat = This->textFormat;
-                        textlayout = This->textLayout;
+                        textformat = textex->textFormat;
+                        textlayout = textex->textLayout;
                         if (!textlayout)
                             goto release;
                         /*hr = dwritefactory->CreateTextLayout(string, stringlength, textformat, size.width, size.height, &textlayout);
@@ -612,10 +612,11 @@ uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_CText(uDwm::CText* Th
 uDwm::CText* STDMETHODCALLTYPE CaptionTextHandler::MyCText_Destroy(uDwm::CText* This, UINT someFlags)
 {
 	if (*((BYTE*)This + 411)) {
-		if (This->textFormat != NULL)
-			This->textFormat->Release();
-		if (This->textLayout != NULL)
-			This->textLayout->Release();
+		TEXTEX* textex = This->GetTextEx();
+		if (textex->textFormat)
+			textex->textFormat->Release();
+		if (textex->textLayout)
+			textex->textLayout->Release();
 		//free(This.textEx);
 	}
 	uDwm::CText* textobj = g_CText_Destroy_Org(This, someFlags);
