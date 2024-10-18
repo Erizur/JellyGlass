@@ -746,7 +746,7 @@ HRESULT CaptionTextHandler::Startup()
     );
     g_disableTextHooks = (value & 1) != 0;*/
 	
-	g_disableTextHooks = 0;
+	g_disableTextHooks = 1;
 
 	if (!g_disableTextHooks)
 	{
