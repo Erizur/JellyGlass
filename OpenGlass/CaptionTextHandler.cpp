@@ -81,7 +81,7 @@ namespace OpenGlass::CaptionTextHandler
             DWMAtlas->Release();
     }
 
-	void CText_CreateTextLayout(uDwm::CText* This) {
+	void CreateTextLayout(uDwm::CText* This) {
         BYTE* pThis = (BYTE*)This;
 		HRESULT hr = 0;
 		LPCWSTR string = *(LPCWSTR*)(pThis + 288);
@@ -104,13 +104,13 @@ namespace OpenGlass::CaptionTextHandler
 		}
 	release:
 		if (hr >= 0) {
-			if (textex->textLayout)
+			if (textex->textLayout != nullptr)
 				textex->textLayout->Release();
 			textex->textLayout = textlayout;
 		}
 	}
 
-	void CText_CreateTextFormat(uDwm::CText* This, LOGFONTW* font) {
+	void CreateTextFormat(uDwm::CText* This, LOGFONTW* font) {
         BYTE* pThis = (BYTE*)This;
 		HRESULT hr = 0;
 		IDWriteTextFormat* textformat;
@@ -163,10 +163,10 @@ namespace OpenGlass::CaptionTextHandler
 		}*/
 	release:
 		if (hr >= 0) {
-			if (textex->textFormat)
+			if (textex->textFormat != nullptr)
 				textex->textFormat->Release();
 			textex->textFormat = textformat;
-			CText_CreateTextLayout(This);
+			CreateTextLayout(This);
 		}
 	}
 }
@@ -363,7 +363,7 @@ HRESULT STDMETHODCALLTYPE CaptionTextHandler::MyCText_ValidateResources(uDwm::CT
                             textformat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
                         }*/
                         if (!textex->textFormat) {
-                            CText_CreateTextFormat(This, &font);
+                            CreateTextFormat(This, &font);
                         }
                         textformat = textex->textFormat;
                         textlayout = textex->textLayout;
@@ -628,7 +628,7 @@ long STDMETHODCALLTYPE CaptionTextHandler::MyCText_SetText(uDwm::CText* This, wc
     TEXTEX* textex = This->GetTextEx();
 	if (*((BYTE*)This + 411)) {
 		textex->render = true;
-		CText_CreateTextLayout(This);
+		CreateTextLayout(This);
 	}
 	return hr;
 }
@@ -638,7 +638,7 @@ void STDMETHODCALLTYPE CaptionTextHandler::MyCText_SetFont(uDwm::CText* This, LO
 	if (memcmp(((BYTE*)This + 296), font, sizeof(LOGFONTW))) {
 		if (*((BYTE*)This + 411)) {
 			textex->render = true;
-			CText_CreateTextFormat(This, font);
+			CreateTextFormat(This, font);
 		}
 	}
 	g_CText_SetFont_Org(This, font);
@@ -746,7 +746,7 @@ HRESULT CaptionTextHandler::Startup()
     );
     g_disableTextHooks = (value & 1) != 0;*/
 	
-	g_disableTextHooks = 1;
+	g_disableTextHooks = 0;
 
 	if (!g_disableTextHooks)
 	{
