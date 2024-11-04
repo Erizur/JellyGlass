@@ -11,8 +11,8 @@ namespace OpenGlass::Shared
 		DWORD tbWidth = 0;
 		MARGINS textInset = { 0 };
 		bool render = false;
-		IDWriteTextFormat* textFormat = nullptr;
 		IDWriteTextLayout* textLayout = nullptr;
+		IDWriteTextFormat* textFormat = nullptr;
 		RECT fillboxSize = { 0 };
 		bool isActive = true; // this is used mainly to check for re-rendering when window state changes
 	} TEXTEX;
